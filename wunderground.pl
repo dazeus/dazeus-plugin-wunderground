@@ -3,6 +3,9 @@ use strict;
 use warnings;
 use Weather::Underground;
 use DaZeus;
+use v5.14;
+use open qw(:encoding(UTF-8) :std);
+use utf8;
 
 my ($socket, $default_location) = @ARGV;
 if(!$socket) {
@@ -53,7 +56,7 @@ $dazeus->subscribe_command("weather" => sub {
 	}
 	$weather = $weather->[0];
 	# Nijmegen: Overcast, 11ºC, wind 5 km/h SSE, 91% humidity, sunset 4:36 PM CET
-	reply(sprintf("%s: %s, %.1fºC, wind %.1f km/h %s, %02d%% humidity, sunset %s", $location,
+	reply(sprintf("%s: %s, %.1f℃, wind %.1f km/h %s, %02d%% humidity, sunset %s", $location,
 		map { $weather->{$_} } qw/conditions celsius wind_kilometersperhour wind_direction humidity sunset/),
 		$network, $sender, $channel);
 });
