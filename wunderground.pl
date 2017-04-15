@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Weather::Underground;
+use WWW::Wunderground::API;
 use DaZeus;
 use v5.14;
 use open qw(:encoding(UTF-8) :std);
@@ -30,34 +30,24 @@ $dazeus->subscribe_command("weather" => sub {
 		reply("Usage: weather <location>", $network, $sender, $channel);
 		return;
 	}
-	my $weather = Weather::Underground->new(
-		place => $location,
-	);
+
+	my $weather = WWW::Wunderground::API->new(location => $location, auto_api => 1);
 	if(!$weather) {
 		reply("Couldn't get weather info for '$location': $@\n", $network, $sender, $channel);
 		return;
 	}
-	$weather = $weather->get_weather();
+	# explicitly update conditions by asking for temp_c
+	$weather->temp_c;
+	$weather = $weather->conditions();
 	if(!$weather) {
 		reply("Couldn't get weather info for '$location': $@\n", $network, $sender, $channel);
 		return;
 	}
-	if(!@$weather) {
-		reply("Couldn't get weather info for '$location': no such place\n", $network, $sender, $channel);
-		return;
-	}
-	if(@$weather > 1) {
-		my $locations = join ", ", map { $_->{'place'} } @$weather;
-		if(length($locations) > 100) {
-			$locations = substr($locations, 0, 100) . "...";
-		}
-		reply("Which of these locations did you mean? $locations", $network, $sender, $channel);
-		return;
-	}
-	$weather = $weather->[0];
-	# Nijmegen: Overcast, 11ºC, wind 5 km/h SSE, 91% humidity, sunset 4:36 PM CET
-	reply(sprintf("%s: %s, %.1f ºC, wind %.1f km/h %s, %02d%% humidity, sunset %s", $location,
-		map { $weather->{$_} } qw/conditions celsius wind_kilometersperhour wind_direction humidity sunset/),
+	# Nijmegen: Overcast, 11ºC, wind 5 km/h SSE, 91% humidity
+	$weather->{'full_location'} = $weather->{'display_location'}{'full'};
+	$weather->{'wind_kmh'} = $weather->{'wind_mph'} * 1.609344;
+	reply(sprintf("%s: %s, %.1f ºC, wind %.1f km/h %s, %s humidity",
+		map { $weather->{$_} } qw/full_location weather temp_c wind_kmh wind_dir relative_humidity/),
 		$network, $sender, $channel);
 });
 while($dazeus->handleEvents()) {}
